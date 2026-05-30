@@ -67,3 +67,7 @@ if (CV.applyType === Manualnull ) {
 
 ## Övriga ideer 
 - Man skulle kunna göra så att man har olika cv-profiler med unik cv och historik övre jobben som processats, men men en check som kolla alla de sparade filtera så att man inte sckickar in flera ansökningar på samma annons, fast med ett annat cv. 
+- Man kan göra så att man får en rapport på vad systemet har gjort och vilka jobb den skickat in på och med vilken cv.
+För att det ska fungera CV sparas kopplat till annonsen.
+
+
