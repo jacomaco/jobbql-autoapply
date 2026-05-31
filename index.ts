@@ -31,20 +31,20 @@ function determineApplyConfiguration(type: ApplyType) {
 }
 
 async function fetchJobAdsFromArbetsformedlingen() {
-    throw new Error("Function not implemented.");
+    throw new Error("Function not implemented."); // kolla om detta är vär t att använda: https://bun.com/docs/runtime/networking/fetch#streaming-response-bodies, kan vara interessant ifall man inte behöver använda AsyncGenerator då?
 }
 
-async function* generateTasks(data: any): AsyncGenerator<Task, void, unknown> { // TODO: ta reda på vad det är för datatyp som matas it. se rawData.j 
+async function* generateTasks(data: any): AsyncGenerator<Task, void, unknown> { // TODO: ta reda på vad det är för datatyp som matas it. se rawData. 
     for (const task of data) {
         yield task
     }
 }
 
-async function startTasks() {
+async function startWorkflow(cvText: string) {
     // 1. Hämta datan från AF (gärna filtrerad via query params)
     const rawData = await fetchJobAdsFromArbetsformedlingen();
     
-    // 2. Strömma uppgifterna via generator
+    // 2. Strömma uppgifterna via generator. Alternativs via bun stream.
     for await (const task of generateTasks(rawData)) {
         
         // KONTROLL 1: Har detta jobb hanteras tidigare?
@@ -53,7 +53,7 @@ async function startTasks() {
         }
 
         // 3. AI-AGENT ANALYS: Skicka CV.md + jobbannons till AI
-        const analysis = await analyzeJobWithAI(myCV, task.jobDescription);
+        const analysis = await analyzeJobWithAI(cvText, task.jobDescription); // Implementera mock function så jag kan implementera början av programmet innan jag behöver oroa mig över api kostnader.
         
         // KONTROLL 2: Matchar jobbet ditt CV?
         if (analysis.match === false) {
@@ -77,23 +77,27 @@ async function startTasks() {
     }
 }
 
+// ============================================================================
+// StartProgram
+// ============================================================================
+
 // 1. Läs in CV.md
 const cvFile = Bun.file("CV.md");
 const cvText = await cvFile.text(); 
 console.log(`Läst in CV (${cvText.length} tecken)`);
 
-// 2. HashSet för ID-lookups
-const processedJobPostIDs = new Set<number>();
-
-// Spara till fil med Bun.write
-async function saveIDs() {
-    const arrayForm = Array.from(processedJobPostIDs);
-    await Bun.write("processed_ids.json", JSON.stringify(arrayForm));
-}
-
-// Ladda från fil
-const idFile = Bun.file("processed_ids.json");
-if (await idFile.exists()) {
-    const ids: number[] = await idFile.json();
-    ids.forEach(id => processedJobPostIDs.add(id));
-}
+startWorkflow(cvText)
+// const processedJobPostIDs = new Set<number>();
+//
+// // Spara till fil med Bun.write
+// async function saveIDs() {
+//     const arrayForm = Array.from(processedJobPostIDs);
+//     await Bun.write("processed_ids.json", JSON.stringify(arrayForm));
+// }
+//
+// // Ladda från fil
+// const idFile = Bun.file("processed_ids.json");
+// if (await idFile.exists()) {
+//     const ids: number[] = await idFile.json();
+//     ids.forEach(id => processedJobPostIDs.add(id));
+// }
