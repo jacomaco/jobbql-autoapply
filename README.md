@@ -6,8 +6,12 @@ To install dependencies:
 bun install
 ```
 
-To run:
-
+## To run:
+### Run database:
+```bash
+docker compose up -d
+```
+### Run program:
 ```bash
 bun run index.ts
 ```
