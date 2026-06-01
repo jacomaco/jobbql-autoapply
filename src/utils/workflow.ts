@@ -1,8 +1,12 @@
 import { db } from "../db/mockDb";
+import type { Application } from "../db/models/Application";
+import type { JobPost } from "../db/models/JobPost";
+import type { Profile } from "../db/models/Profile";
+import type { User } from "../db/models/User";
 import { fetchJobAdsFromArbetsformedlingen } from "../services/afService";
 import { analyzeJobWithAI } from "../services/aiService";
 import { applicationQueue } from "../services/queue";
-import { ApplyType, type JobPost, type Profile, type User } from "../types";
+import { ApplyType } from "../types";
 
 function determineApplyConfiguration(type: ApplyType) {
 	switch (type) {

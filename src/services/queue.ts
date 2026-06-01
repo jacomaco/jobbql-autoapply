@@ -1,4 +1,4 @@
-import type { JobPost } from "../types";
+import type { JobPost } from "../db/models/JobPost";
 
 export const applicationQueue = {
 	async add(data: { job: JobPost; config: any }) {
