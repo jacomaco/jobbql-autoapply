@@ -1,39 +1,70 @@
 import * as mongoose from "mongoose";
-import { Types } from "mongoose"; // Importera Types
-import type { Profile } from "./db/models/Profile.ts";
-import type { User } from "./db/models/User.ts";
+import { ApplicationModel } from "./models/Application";
+import type { Profile } from "./models/Profile";
+import { ProfileModel } from "./models/Profile";
+import type { User } from "./models/User";
+import { UserModel } from "./models/User";
 import { startWorkflow } from "./utils/workflow";
 
-// connect to database
-// Bun läser automatiskt in din .env-fil till process.env
-const dbUser = process.env.DB_USER;
-const dbPassword = process.env.DB_PASSWORD;
-const MONGO_URI = `mongodb://${dbUser}:${dbPassword}@localhost:27017/jobbql?authSource=admin`;
-await mongoose.connect(MONGO_URI);
+// Ladda in environment (se till att du använder din config-fil här sen)
+const dbUser = encodeURIComponent(process.env.DB_USER || "");
+const dbPassword = encodeURIComponent((process.env.DB_PASSWORD || "").trim());
 
-// Läs in fil med Buns filhantering
-const cvFile = Bun.file("CV.md");
+const MONGO_URI = `mongodb://${dbUser}:${dbPassword}@127.0.0.1:27017/jobbql?authSource=admin&directConnection=true`;
 
 async function main() {
-	// Generera två unika test-ID:n som matchar MongoDB:s struktur
-	const mockUserId = new Types.ObjectId();
-	const mockProfileId = new Types.ObjectId();
+	await mongoose.connect(MONGO_URI);
+	console.log("Databas ansluten.");
 
-	const currentUser: User = {
-		_id: mockUserId,
-		email: "jacob@example.com",
-		createdAt: new Date(),
-	};
+	// Skapa variabler utanför try-blocket så vi kommer åt dem i finally
+	let testUser: User | null = null;
+	let testProfile: Profile | null = null;
 
-	const activeProfile: Profile = {
-		_id: mockProfileId,
-		userId: mockUserId, // Matchar användarens ID
-		profileName: "Fullstack Node/React",
-		baseCvText: await cvFile.text(),
-	};
+	try {
+		// --- 1. SETUP: Skapa Testdata ---
+		console.log("Skapar testanvändare och läser in CV...");
 
-	console.log(`Startar workflow för profil: "${activeProfile.profileName}"`);
-	await startWorkflow(currentUser, activeProfile);
+		testUser = await UserModel.create({
+			email: "test_jobbql@example.com",
+		});
+
+		const cvFile = Bun.file("CV.md");
+		const cvText = await cvFile.text();
+
+		testProfile = await ProfileModel.create({
+			userId: testUser._id,
+			profileName: "Fullstack Node/React (Testkörning)",
+			baseCvText: cvText,
+		});
+
+		console.log(`Startar workflow för profil: "${testProfile.profileName}"`);
+
+		// 🔥 LÄGG TILL DETTA: Type Guard / Säkerhetskontroll
+		if (!testUser || !testProfile) {
+			throw new Error("Misslyckades med att skapa testdata. Avbryter.");
+		}
+		// --- 2. KÖR PROGRAMMET ---
+		// TypeScript vet automatiskt att testUser och testProfile matchar dina interfaces
+		await startWorkflow(testUser, testProfile);
+	} catch (error) {
+		console.error("Ett fel uppstod under körningen:", error);
+	} finally {
+		// --- 3. TEARDOWN: Städa upp ---
+		console.log("\nStädar upp i databasen...");
+
+		if (testUser) {
+			await UserModel.findByIdAndDelete(testUser._id);
+
+			// Frivilligt: Om du vill ta bort de ansökningar som genererades under testet
+			// await ApplicationModel.deleteMany({ userId: testUser._id });
+		}
+		if (testProfile) {
+			await ProfileModel.findByIdAndDelete(testProfile._id);
+		}
+
+		console.log("Testdata borttagen. Stänger anslutningen.");
+		await mongoose.disconnect();
+	}
 }
 
 main().catch(console.error);

@@ -1,16 +1,19 @@
 {
-  "name": "jobbql-autoapply",
-  "module": "index.ts",
-  "type": "module",
-  "private": true,
-  "devDependencies": {
-    "@biomejs/biome": "2.4.16",
-    "@types/bun": "latest"
-  },
-  "peerDependencies": {
-    "typescript": "^5"
-  },
-  "dependencies": {
-    "mongoose": "^9.6.3"
-  }
+	"name": "jobbql-autoapply",
+	"module": "index.ts",
+	"type": "module",
+	"scripts": {
+		"start": "bun run src/index.ts"
+	},
+	"private": true,
+	"devDependencies": {
+		"@biomejs/biome": "2.4.16",
+		"@types/bun": "latest"
+	},
+	"peerDependencies": {
+		"typescript": "^5"
+	},
+	"dependencies": {
+		"mongoose": "^9.6.3"
+	}
 }

@@ -1,21 +1,18 @@
-import { db } from "../db/mockDb";
-import type { Application } from "../db/models/Application";
-import type { JobPost } from "../db/models/JobPost";
-import type { Profile } from "../db/models/Profile";
-import type { User } from "../db/models/User";
+import { ApplicationModel } from "../models/Application";
+import type { JobPost } from "../models/JobPost";
+import type { Profile } from "../models/Profile";
+import type { User } from "../models/User";
 import { fetchJobAdsFromArbetsformedlingen } from "../services/afService";
 import { analyzeJobWithAI } from "../services/aiService";
 import { applicationQueue } from "../services/queue";
-import { ApplyType } from "../types";
+import { ApplyType } from "../types/enums";
 
 function determineApplyConfiguration(type: ApplyType) {
 	switch (type) {
 		case ApplyType.Email:
 			return { customizedCV: true, customizedEmail: true };
 		case ApplyType.Manual:
-			return { customizedCV: true, coverLetter: true, sendManually: true };
 		case ApplyType.Unknown:
-			return { customizedCV: true, coverLetter: true, sendManually: true };
 		default:
 			return { customizedCV: true, coverLetter: true, sendManually: true };
 	}
@@ -33,7 +30,12 @@ export async function startWorkflow(user: User, profile: Profile) {
 	const rawData = await fetchJobAdsFromArbetsformedlingen();
 
 	for await (const job of generateTasks(rawData)) {
-		const alreadyProcessed = await db.application.exists(user.id, job.id);
+		// KONTROLL 1: Kolla direkt via Mongoose om ansökan finns
+		const alreadyProcessed = await ApplicationModel.exists({
+			userId: user._id,
+			jobPostId: job.id,
+		});
+
 		if (alreadyProcessed) {
 			console.log(
 				`Hoppar över jobb ${job.id} (${job.jobTitle}) - Redan hanterat.`,
@@ -46,10 +48,11 @@ export async function startWorkflow(user: User, profile: Profile) {
 			job.jobDescription,
 		);
 
+		// KONTROLL 2: Om AI:n säger att det inte är en match, spara som "Skipped"
 		if (analysis.match === false) {
-			await db.application.create({
-				userId: user.id,
-				profileId: profile.id,
+			await ApplicationModel.create({
+				userId: user._id,
+				profileId: profile._id,
 				jobPostId: job.id,
 				generatedCvText: "",
 				status: "Skipped",
@@ -57,10 +60,11 @@ export async function startWorkflow(user: User, profile: Profile) {
 			continue;
 		}
 
+		// 4. MATCH! Skapa ansökan i databasen
 		try {
-			await db.application.create({
-				userId: user.id,
-				profileId: profile.id,
+			await ApplicationModel.create({
+				userId: user._id,
+				profileId: profile._id,
 				jobPostId: job.id,
 				generatedCvText: analysis.customizedCvText,
 				status: "Queue",
@@ -68,8 +72,18 @@ export async function startWorkflow(user: User, profile: Profile) {
 
 			const config = determineApplyConfiguration(analysis.applicationType);
 			await applicationQueue.add({ job, config });
-		} catch (error) {
-			console.error(`Kunde inte skapa ansökan för jobb ${job.id}.`);
+		} catch (error: any) {
+			// Fångar upp MongoDB:s duplicate key error (11000) som triggas av vårt unika index
+			if (error.code === 11000) {
+				console.log(
+					`Jobb ${job.id} hanterades precis av en annan process. Hoppar över.`,
+				);
+			} else {
+				console.error(
+					`Kunde inte skapa ansökan för jobb ${job.id}:`,
+					error.message,
+				);
+			}
 		}
 	}
 }

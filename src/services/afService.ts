@@ -1,4 +1,4 @@
-import type { JobPost } from "../db/models/JobPost";
+import type { JobPost } from "../models/JobPost";
 
 export async function fetchJobAdsFromArbetsformedlingen(): Promise<JobPost[]> {
 	return [
