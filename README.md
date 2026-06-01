@@ -1,19 +1,51 @@
-# jobbql-autoapply
+Här är texten formaterad med korrekt Markdown-syntax:
 
-To install dependencies:
+# Jobbql (Auto-Apply Pipeline)
+
+Ett automationsverktyg byggt i TypeScript och Bun för att hämta jobbannonser, analysera dem mot en kandidats profil med hjälp av AI, och automatiskt generera skräddarsydda CV:n och ansökningsuppgifter.
+
+## 🛠 Förutsättningar
+
+* [Bun](https://bun.sh/) (JavaScript runtime)
+* [Docker & Docker Compose](https://www.docker.com/) (För lokal MongoDB)
+* En lokal AI-motor (t.ex. Ollama) *[Kommande]*
+
+## 🚀 Kom igång
+
+### 1. Installera beroenden
 
 ```bash
 bun install
+
 ```
 
-## To run:
-### Run database:
+### 2. Konfigurera miljövariabler
+
+Skapa en `.env`-fil och lägg till följande:
+
+```env
+DB_USER=admin
+DB_PASSWORD=ditt_hemliga_lösenord
+
+```
+
+### 3. Starta databasen
+
 ```bash
 docker compose up -d
-```
-### Run program:
-```bash
-bun run index.ts
+
 ```
 
-This project was created using `bun init` in bun v1.3.14. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+### 4. Kör programmet
+
+```bash
+bun start
+
+```
+
+## 📂 Projektstruktur
+
+* **`src/models/`** - Mongoose databasmodeller (User, Profile, Application, JobPost).
+* **`src/services/`** - Integrationer mot externa tjänster (Arbetsförmedlingen, AI, Kö-hantering).
+* **`src/utils/workflow.ts`** - Huvudlogiken för att processa annonser.
+* **`src/index.ts`** - Startpunkt och testkörning.
