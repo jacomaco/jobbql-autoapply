@@ -6,17 +6,17 @@ import type { User } from "./models/User";
 import { UserModel } from "./models/User";
 import { startWorkflow } from "./utils/workflow";
 
-// Ladda in environment (se till att du använder din config-fil här sen)
+// Hämta och säkra upp environment-variablerna
 const dbUser = encodeURIComponent(process.env.DB_USER || "");
 const dbPassword = encodeURIComponent((process.env.DB_PASSWORD || "").trim());
 
+// Tvinga direktanslutning till IPv4 localhost med directConnection=true
 const MONGO_URI = `mongodb://${dbUser}:${dbPassword}@127.0.0.1:27017/jobbql?authSource=admin&directConnection=true`;
 
 async function main() {
 	await mongoose.connect(MONGO_URI);
 	console.log("Databas ansluten.");
 
-	// Skapa variabler utanför try-blocket så vi kommer åt dem i finally
 	let testUser: User | null = null;
 	let testProfile: Profile | null = null;
 
@@ -37,15 +37,34 @@ async function main() {
 			baseCvText: cvText,
 		});
 
-		console.log(`Startar workflow för profil: "${testProfile.profileName}"`);
-
-		// 🔥 LÄGG TILL DETTA: Type Guard / Säkerhetskontroll
 		if (!testUser || !testProfile) {
 			throw new Error("Misslyckades med att skapa testdata. Avbryter.");
 		}
+
+		console.log(`Startar workflow för profil: "${testProfile.profileName}"`);
+
 		// --- 2. KÖR PROGRAMMET ---
-		// TypeScript vet automatiskt att testUser och testProfile matchar dina interfaces
 		await startWorkflow(testUser, testProfile);
+
+		// 🔥 LÄGG TILL DETTA: Skriv ut en rapport från databasen
+		console.log("\n--- RESULTAT I DATABASEN ---");
+
+		// Hämta alla ansökningar som skapades för testanvändaren
+		const savedApplications = await ApplicationModel.find({
+			userId: testUser._id,
+		});
+
+		console.log(`Hittade ${savedApplications.length} sparade ansökningar.`);
+
+		for (const app of savedApplications) {
+			console.log(`- Jobb ID: ${app.jobPostId}`);
+			console.log(`  Status: ${app.status}`);
+			// Skriv ut de första 50 tecknen av CV:t för att se att AI:n "fungerade"
+			console.log(
+				`  CV Preview: ${app.generatedCvText.substring(0, 50).replace(/\n/g, " ")}...`,
+			);
+		}
+		console.log("----------------------------");
 	} catch (error) {
 		console.error("Ett fel uppstod under körningen:", error);
 	} finally {
@@ -54,9 +73,7 @@ async function main() {
 
 		if (testUser) {
 			await UserModel.findByIdAndDelete(testUser._id);
-
-			// Frivilligt: Om du vill ta bort de ansökningar som genererades under testet
-			// await ApplicationModel.deleteMany({ userId: testUser._id });
+			await ApplicationModel.deleteMany({ userId: testUser._id }); // Nu tar vi bort dem också!
 		}
 		if (testProfile) {
 			await ProfileModel.findByIdAndDelete(testProfile._id);
