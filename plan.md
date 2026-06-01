@@ -70,4 +70,5 @@ if (CV.applyType === Manualnull ) {
 - Man kan göra så att man får en rapport på vad systemet har gjort och vilka jobb den skickat in på och med vilken cv.
 För att det ska fungera CV sparas kopplat till annonsen.
 
-
+## TODO 
+1. implementera mongoose och schema för och test profil
