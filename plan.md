@@ -1,74 +1,71 @@
-# Plan för att bygga en autoapply script
+# Projektplan: Jobbql (Auto-Apply Script)
 
-## Vad förväntar jag mig att programmet ska göra 
-- Programmet börjar med en CV.md fil som innehåller samtilag(mest) av mina arbetslivserfarenehter.
-Den ska också ha en viss grundstruktur som jag definerar på förhand. 
-- CV.md ska analyseras mot jobbannonser som hämtas via api från arbetsförmedlingen (ifall dess url från paltsbanken inte har analyserats tiidigare) med hjälp av AI-agent flöde. 
-- Om CVn är tillräckligt relevant (dvs CV.analysis = {match: true, reason: '...', applicationType: enum (någont som bestäms berående på hur annonsen på arbetsförmedlingen har för sätt som de vill att man ansöker på, )}).
+## 🎯 Vision & Flöde
 
-### Data-ingestion 
-- kan göras genom att hämta jobbdata från arbetsförmedlingen
-(const data = await fetch('url')).filter(...) // Tänker att man borde kunna göra mycket av filtreringen direkt i api anroppet med query parameters, eg stockohlm.
+Programmet ska automatisera jobbsökningsprocessen. Det utgår från en basprofil (t.ex. en `CV.md` med arbetslivserfarenhet) och matchar denna mot inkommande annonser via ett AI-agent-flöde.
 
+1. **Hämta:** Plocka relevanta jobbannonser från Arbetsförmedlingen (JobTech Dev API).
+2. **Analysera:** Jämför annonsen mot användarens profil/CV med hjälp av en lokal LLM (t.ex. Ollama).
+3. **Beslut:** Bedöm om det är en match. Om "Ja", bestäm hur ansökan ska ske (`ApplyType`).
+4. **Generera & Köa:** Generera ett anpassat CV/personligt brev och lägg ansökan i en kö för slutlig hantering.
 
-- Filtrera datan och födela ut arbetsuppgifter genom att använda en generator function 
-// använd interface för att definera arbetsuppgifter
-interface Task {
-        jobPostID: number,
-        jobTitle: string,
-        email: string | null,
-        jobDescription: string,
-        ...
-    }
-$$\text{AsyncGenerator}<\text{YieldType}, \text{ReturnType}, \text{NextType}>$$
-async function* generateTasks(data: any): AsyncGenerator<Task, void, unknown> { 
-    for (const task of tasks) {
-        // Förutsatt att filter returnerar ett Task-objekt
-        yield task
-    }
-}
+---
 
-## Consume tasks
-async function startTasks() {
-    for await (const task of generateTasks(data)) {
-        if (CV.analysis.match === false) {
-            // append to processedJobPostIDs <HashSet> (denna ska sparas till en fil och laddas in i minne när appen är på) använd 'Set.prototype.has()' för snabb lookup.
-        } else {
-            // append to processedJobPostIDs <HashSet> (denna ska sparas till en fil och laddas in i minne när appen är på) använd 'Set.prototype.has()' för snabb lookup.
-            // add task to queue
-        }
+## 🏗 Arkitektur & Datamodell
+
+### Databas (MongoDB + Mongoose)
+
+Vi använder en lokal MongoDB för att hantera tillstånd, relationer och förhindra dubbletter.
+
+* **Modeller:** `User`, `Profile`, `JobPost` och `Application`.
+* **Dubblettskydd:** En unik sammansatt indexering på `userId` + `jobPostId` garanterar att systemet aldrig analyserar eller skickar in en ansökan till samma jobb två gånger för samma användare.
+* *Tidigare tanke om HashSet sparad i fil är skrotad till förmån för direkta MongoDB `.exists()`-frågor.*
+
+### Arbetsflöde (Data Ingestion & Processing)
+
+Jobb hämtas in via `afService` och matas in i systemet via en asynkron generator-funktion (`generateTasks`) för att kunna bearbeta stora mängder annonser smidigt.
+
+```typescript
+async function* generateTasks(data: JobPost[]): AsyncGenerator<JobPost, void, unknown> {
+    for (const job of data) {
+        yield job;
     }
 }
 
-enum applytype = {
-        Email = 'Email',
-        TeamTailor = 'TeamTailor',
-        Manual = 'Manual'
-        ...
-    }
+```
 
-applicationType bestämmer vad som ska hända med CVt i nästa stadie, ex på hur man skulle kunna konfigurera nästa steg:
-if (CV.applyType === applyType.Email) {
-    applyConfiguration = {
-        customizedCV: true,
-        customizedEmail: true,
-        ...
-    }
-}
-// handera ifall det inte finns en fördefinirad applyType
-if (CV.applyType === Manualnull ) {
-   applyConfiguration = {
-       customizedCV: true,
-       coverLetter: true,
-       sendManually: true
-   } 
-}
+### Konfiguration av Ansökan (`ApplyType`)
 
+Beroende på vad AI:n eller annonsen definierar genereras en anpassad konfiguration för nästa steg i kön:
 
-## Övriga ideer 
-- Man skulle kunna göra så att man har olika cv-profiler med unik cv och historik övre jobben som processats, men men en check som kolla alla de sparade filtera så att man inte sckickar in flera ansökningar på samma annons, fast med ett annat cv. 
-- Man kan göra så att man får en rapport på vad systemet har gjort och vilka jobb den skickat in på och med vilken cv.
-För att det ska fungera CV sparas kopplat till annonsen.
+* **Email:** Generera anpassat CV + personligt mailutkast.
+* **TeamTailor:** Generera anpassat CV för automatisk uppladdning.
+* **Manual:** Generera CV och personligt brev, förbered för att användaren själv skickar in.
 
-## TODO 
-1. implementera mongoose och schema för och test profil
+---
+
+## 📝 TODO / Roadmap
+
+### Faser som är klara (✔)
+
+* [x] Sätt upp grundläggande projektstruktur med TypeScript och Bun.
+* [x] Konfigurera och starta lokal MongoDB via Docker Compose.
+* [x] Skapa databasmodeller med Mongoose och TypeScript-interfaces (User, Profile, JobPost, Application).
+* [x] Bygg huvud-workflow (`workflow.ts`) med logik för att blockera dubbletter via databasen.
+* [x] Implementera robust test-flöde (Setup/Teardown) i `index.ts`.
+
+### Aktuella / Nästa steg (🚀)
+
+* [ ] **Data Ingestion:** Integrera skarpt mot Arbetsförmedlingens API (JobTech Dev) i `afService.ts`. Hantera paginering och sökparametrar (t.ex. nyckelord, ort).
+* [ ] **AI-motorn:** Sätt upp Ollama lokalt. Implementera riktig anropslogik i `aiService.ts` som matar in base-CV och jobbannons, och tvingar ut strukturerad JSON (Match? + Reason + ApplyType) samt ett skräddarsytt Markdown-CV.
+* [ ] **Kö & Leverans:** Utveckla `queue.ts` så att den kan konvertera det färdiga Markdown-dokumentet till en snygg PDF.
+
+### Framtida idéer (🌟)
+
+* Fleranvändarstöd med unika profiler.
+* Generera en visuell rapport/dashboard över vad systemet har gjort (vilka jobb sökta, vilken `ApplyType` valdes).
+* Möjlig pivot/integration: Sätt in denna logik som en "Sourcing-motor" i projektet *Star Match*.
+
+---
+
+Detta ger en perfekt röd tråd för projektet och gör det väldigt lätt att hoppa in och fortsätta koda nästa gång. Redo att attackera Arbetsförmedlingens API eller Ollama?
