@@ -4,11 +4,17 @@ import type { Profile } from "./models/Profile";
 import { ProfileModel } from "./models/Profile";
 import type { User } from "./models/User";
 import { UserModel } from "./models/User";
-import { startWorkflow } from "./utils/workflow";
+// import { startWorkflow } from "./utils/workflow";
+import { startWorkflow } from "./workflows/jobApplyWorkflow";
 
 // Hämta och säkra upp environment-variablerna
-const dbUser = encodeURIComponent(process.env.DB_USER || "");
-const dbPassword = encodeURIComponent((process.env.DB_PASSWORD || "").trim());
+if (!process.env.DB_USER || !process.env.DB_PASSWORD) {
+	throw new Error(
+		"Error: DB_USER or DB_PASSWORD is not set in environment variables. Make sure your env file (e.g., .env.development or .env.test) is loaded and has these variables configured.",
+	);
+}
+const dbUser = encodeURIComponent(process.env.DB_USER);
+const dbPassword = encodeURIComponent(process.env.DB_PASSWORD.trim());
 
 // Tvinga direktanslutning till IPv4 localhost med directConnection=true
 const MONGO_URI = `mongodb://${dbUser}:${dbPassword}@127.0.0.1:27017/jobbql?authSource=admin&directConnection=true`;
