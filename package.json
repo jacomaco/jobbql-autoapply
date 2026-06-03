@@ -3,7 +3,8 @@
 	"module": "index.ts",
 	"type": "module",
 	"scripts": {
-		"start": "bun run src/index.ts"
+		"start": "bun --env-file=.env.development run src/index.ts",
+		"test": "bun --env-file=.env.test run src/index.ts"
 	},
 	"private": true,
 	"devDependencies": {
@@ -11,7 +12,7 @@
 		"@types/bun": "latest"
 	},
 	"peerDependencies": {
-		"typescript": "^5"
+		"typescript": "^5.9.3"
 	},
 	"dependencies": {
 		"mongoose": "^9.6.3"

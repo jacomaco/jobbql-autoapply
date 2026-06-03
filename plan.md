@@ -52,7 +52,7 @@ Beroende på vad AI:n eller annonsen definierar genereras en anpassad konfigurat
 * [x] Konfigurera och starta lokal MongoDB via Docker Compose.
 * [x] Skapa databasmodeller med Mongoose och TypeScript-interfaces (User, Profile, JobPost, Application).
 * [x] Bygg huvud-workflow (`workflow.ts`) med logik för att blockera dubbletter via databasen.
-* [x] Implementera robust test-flöde (Setup/Teardown) i `index.ts`.
+* [ ] Implementera robust test-flöde Med Bun testrunner.
 
 ### Aktuella / Nästa steg (🚀)
 
@@ -67,5 +67,3 @@ Beroende på vad AI:n eller annonsen definierar genereras en anpassad konfigurat
 * Möjlig pivot/integration: Sätt in denna logik som en "Sourcing-motor" i projektet *Star Match*.
 
 ---
-
-Detta ger en perfekt röd tråd för projektet och gör det väldigt lätt att hoppa in och fortsätta koda nästa gång. Redo att attackera Arbetsförmedlingens API eller Ollama?

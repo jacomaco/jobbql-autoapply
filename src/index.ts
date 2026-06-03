@@ -46,7 +46,7 @@ async function main() {
 		// --- 2. KÖR PROGRAMMET ---
 		await startWorkflow(testUser, testProfile);
 
-		// 🔥 LÄGG TILL DETTA: Skriv ut en rapport från databasen
+		// Skriv ut en rapport från databasen
 		console.log("\n--- RESULTAT I DATABASEN ---");
 
 		// Hämta alla ansökningar som skapades för testanvändaren
