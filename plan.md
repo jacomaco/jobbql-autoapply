@@ -59,6 +59,7 @@ Beroende på vad AI:n eller annonsen definierar genereras en anpassad konfigurat
 * [ ] **Data Ingestion:** Integrera skarpt mot Arbetsförmedlingens API (JobTech Dev) i `afService.ts`. Hantera paginering och sökparametrar (t.ex. nyckelord, ort).
 * [ ] **AI-motorn:** Sätt upp Ollama lokalt. Implementera riktig anropslogik i `aiService.ts` som matar in base-CV och jobbannons, och tvingar ut strukturerad JSON (Match? + Reason + ApplyType) samt ett skräddarsytt Markdown-CV.
 * [ ] **Kö & Leverans:** Utveckla `queue.ts` så att den kan konvertera det färdiga Markdown-dokumentet till en snygg PDF.
+* [ ] Migrera till node.js eller annnan runtime som har support för playwright (Bun verkar inte ha det).
 
 ### Framtida idéer (🌟)
 
