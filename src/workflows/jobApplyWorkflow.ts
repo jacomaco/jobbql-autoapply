@@ -12,56 +12,50 @@ function determineApplyConfiguration(type: ApplyType) {
 		case ApplyType.Email:
 			return { customizedCV: true, customizedEmail: true };
 		case ApplyType.Manual:
-		case ApplyType.Unknown:
 		default:
 			return { customizedCV: true, coverLetter: true, sendManually: true };
 	}
 }
 
-async function* generateTasks(
-	data: JobPost[],
-): AsyncGenerator<JobPost, void, unknown> {
-	for (const job of data) {
-		yield job;
-	}
-}
-
 export async function startWorkflow(user: User, profile: Profile) {
+	// Se till att denna faktiskt returnerar data nu, och inte []
 	const rawData = await fetchJobAdsFromArbetsformedlingen();
 
-	for await (const job of generateTasks(rawData)) {
-		// KONTROLL 1: Kolla direkt via Mongoose om ansökan finns
-		const alreadyProcessed = await ApplicationModel.exists({
-			userId: user._id,
-			jobPostId: job.id,
-		});
-
-		if (alreadyProcessed) {
-			console.log(
-				`Hoppar över jobb ${job.id} (${job.jobTitle}) - Redan hanterat.`,
-			);
-			continue;
-		}
-
-		const analysis = await analyzeJobWithAI(
-			profile.baseCvText,
-			job.jobDescription,
-		);
-
-		// KONTROLL 2: Om AI:n säger att det inte är en match, spara som "Skipped"
-		if (analysis.match === false) {
-			await ApplicationModel.create({
-				userId: user._id,
-				profileId: profile._id,
-				jobPostId: job.id,
-				generatedCvText: "",
-				status: "Skipped",
-			});
-			continue;
-		}
-
-		// 4. MATCH! Skapa ansökan i databasen
+	// Enkel, snabb synkron loop över arrayen istället för generatorn
+	for (const job of rawData) {
 		try {
+			// KONTROLL 1: Kolla direkt via Mongoose om ansökan finns
+			const alreadyProcessed = await ApplicationModel.exists({
+				userId: user._id,
+				jobPostId: job.id,
+			});
+
+			if (alreadyProcessed) {
+				console.log(
+					`Hoppar över jobb ${job.id} (${job.jobTitle}) - Redan hanterat.`,
+				);
+				continue;
+			}
+
+			// AI-Analys (Varning: Detta kommer ta lång tid för många jobb)
+			const analysis = await analyzeJobWithAI(
+				profile.baseCvText,
+				job.jobDescription,
+			);
+
+			// KONTROLL 2: Om AI:n säger att det inte är en match, spara som "Skipped"
+			if (!analysis.match) {
+				await ApplicationModel.create({
+					userId: user._id,
+					profileId: profile._id,
+					jobPostId: job.id,
+					generatedCvText: "",
+					status: "Skipped",
+				});
+				continue;
+			}
+
+			// 4. MATCH! Skapa ansökan i databasen
 			await ApplicationModel.create({
 				userId: user._id,
 				profileId: profile._id,
@@ -73,16 +67,13 @@ export async function startWorkflow(user: User, profile: Profile) {
 			const config = determineApplyConfiguration(analysis.applicationType);
 			await applicationQueue.add({ job, config });
 		} catch (error: any) {
-			// Fångar upp MongoDB:s duplicate key error (11000) som triggas av vårt unika index
+			// Fångar upp både DB-fel och eventuella AI-timeout-fel i samma try/catch
 			if (error.code === 11000) {
 				console.log(
 					`Jobb ${job.id} hanterades precis av en annan process. Hoppar över.`,
 				);
 			} else {
-				console.error(
-					`Kunde inte skapa ansökan för jobb ${job.id}:`,
-					error.message,
-				);
+				console.error(`Kunde inte hantera jobb ${job.id}:`, error.message);
 			}
 		}
 	}
