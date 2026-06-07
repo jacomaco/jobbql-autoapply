@@ -4,7 +4,6 @@ import type { Profile } from "./models/Profile";
 import { ProfileModel } from "./models/Profile";
 import type { User } from "./models/User";
 import { UserModel } from "./models/User";
-// import { startWorkflow } from "./utils/workflow";
 import { startWorkflow } from "./workflows/jobApplyWorkflow";
 
 // Hämta och säkra upp environment-variablerna

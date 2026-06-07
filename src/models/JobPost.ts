@@ -1,14 +1,15 @@
 import { model, Schema } from "mongoose";
 
 export interface JobPost {
-	id: number;
-	jobTitle: string;
+	id: string;
+	headline: string;
 	jobDescription: string;
+	removed?: boolean;
 }
 
 const jobPostSchema = new Schema<JobPost>({
-	id: { type: Number, required: true, unique: true },
-	jobTitle: { type: String, required: true },
+	id: { type: String, required: true, unique: true },
+	headline: { type: String, required: true },
 	jobDescription: { type: String, required: true },
 });
 

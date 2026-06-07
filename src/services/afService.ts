@@ -2,7 +2,7 @@ import JSONStream from "JSONStream";
 import { Readable } from "node:stream";
 import type { JobPost } from "../models/JobPost";
 
-const SNAPSHOT_URL = "https://jobstream.api.jobtechdev.se/snapshot";
+const STREAM_URL = "https://jobstream.api.jobtechdev.se/stream";
 
 export async function* fetchJobAdsFromArbetsformedlingen(): AsyncGenerator<
 	JobPost,
@@ -11,8 +11,18 @@ export async function* fetchJobAdsFromArbetsformedlingen(): AsyncGenerator<
 > {
 	const controller = new AbortController();
 
+	// 1. Skapa en dynamisk tidstämpel för "24 timmar sedan"
+	const yesterday = new Date();
+	yesterday.setHours(yesterday.getHours() - 24);
+
+	// API:et vill ha formatet YYYY-MM-DDTHH:MM:SS
+	const timestamp = yesterday.toISOString().split(".")[0];
+
+	const fetchUrl = `${STREAM_URL}?date=${timestamp}`;
+	console.log(`Hämtar annonser från de senaste 24 timmarna (${timestamp})...`);
+
 	try {
-		const response = await fetch(SNAPSHOT_URL, {
+		const response = await fetch(fetchUrl, {
 			headers: { Accept: "application/json" },
 			signal: controller.signal,
 		});
@@ -20,59 +30,25 @@ export async function* fetchJobAdsFromArbetsformedlingen(): AsyncGenerator<
 		if (!response.ok) throw new Error(`HTTP-fel: ${response.status}`);
 		if (!response.body) throw new Error("Body är tom");
 
-		const nodeStream = Readable.fromWeb(response.body as any);
+		const nodeStream = Readable.fromWeb(response.body);
 		const parser = JSONStream.parse("*");
 
-		// Koppla nätverksströmmen till parsern
 		nodeStream.pipe(parser);
 
-		// HÄR ÄR MAGIN: Istället för .on("data") väntar vi in varje jobb sekventiellt.
-		// När din "startWorkflow" pausar för AI-analys, pausar den även läsningen här automatiskt!
-		for await (const job of parser) {
-			yield job as JobPost;
+		for await (const rawJob of parser) {
+			const mappedJob: JobPost = {
+				id: rawJob.id,
+				headline: rawJob.headline || "Ingen titel",
+				jobDescription: rawJob.description?.text || "",
+				removed: rawJob.removed === true,
+			};
+			yield mappedJob;
 		}
 	} catch (error: any) {
 		if (error.name !== "AbortError") {
 			console.error("Nätverksfel vid hämtning av jobb:", error);
 		}
 	} finally {
-		// Säkerställer att anslutningen stängs om generatorn avbryts i förtid
 		controller.abort();
 	}
 }
-
-// import type { JobPost } from "../models/JobPost";
-// const BASE_URL = "https://jobstream.api.jobtechdev.se";
-// const STREAM_URL = `${BASE_URL}/stream`;
-// const SNAPSHOT_URL = `${BASE_URL}/snapshot`;
-//
-// export async function fetchJobAdsFromArbetsformedlingen(): Promise<JobPost[]> {
-// 	let responseSize = 0;
-// 	try {
-// 		const response = await fetch(SNAPSHOT_URL);
-// 		if (!response.ok) {
-// 			throw new Error(`HTTP error! status: ${response.status}`);
-// 		}
-// 		if (!response.body) {
-// 			throw new Error("Response body is null");
-// 		}
-//
-// 		for await (const chunk of response.body) {
-// 			responseSize += 1;
-// 		}
-// 	} catch (error) {
-// 		console.error(error);
-// 	}
-// 	return [
-// 		{
-// 			id: 1001,
-// 			jobTitle: "Fullstack Utvecklare",
-// 			jobDescription: "Vi söker en MERN-utvecklare...",
-// 		},
-// 		{
-// 			id: 1002,
-// 			jobTitle: "DevOps Engineer",
-// 			jobDescription: "Sökes: Erfarenhet av Docker och GCP...",
-// 		},
-// 	];
-// }

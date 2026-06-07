@@ -4,7 +4,7 @@ export interface Application {
 	_id?: Types.ObjectId;
 	userId: Types.ObjectId;
 	profileId: Types.ObjectId;
-	jobPostId: number;
+	jobPostId: string;
 	generatedCvText: string;
 	status: string;
 }
@@ -12,7 +12,7 @@ export interface Application {
 const applicationSchema = new Schema<Application>({
 	userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
 	profileId: { type: Schema.Types.ObjectId, ref: "Profile", required: true },
-	jobPostId: { type: Number, required: true },
+	jobPostId: { type: String, required: true },
 	generatedCvText: { type: String, default: "" },
 	status: {
 		type: String,

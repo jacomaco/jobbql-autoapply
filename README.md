@@ -39,7 +39,7 @@ docker compose up -d
 ### 4. Kör programmet
 
 ```bash
-bun start
+bun dev
 
 ```
 

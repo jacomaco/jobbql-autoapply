@@ -5,7 +5,7 @@ export interface User {
 	email: string;
 	createdAt: Date;
 }
-// maybe I should add a ref to profile
+
 const userSchema = new Schema<User>({
 	email: { type: String, required: true, unique: true },
 	createdAt: { type: Date, default: Date.now },

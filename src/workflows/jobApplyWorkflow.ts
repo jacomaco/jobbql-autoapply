@@ -18,12 +18,11 @@ function determineApplyConfiguration(type: ApplyType) {
 }
 
 export async function startWorkflow(user: User, profile: Profile) {
-	// Se till att denna faktiskt returnerar data nu, och inte []
-	const rawData = await fetchJobAdsFromArbetsformedlingen();
-
-	// Enkel, snabb synkron loop över arrayen istället för generatorn
-	for (const job of rawData) {
+	for await (const job of fetchJobAdsFromArbetsformedlingen()) {
 		try {
+			if (job.removed) {
+				continue;
+			}
 			// KONTROLL 1: Kolla direkt via Mongoose om ansökan finns
 			const alreadyProcessed = await ApplicationModel.exists({
 				userId: user._id,
@@ -32,7 +31,7 @@ export async function startWorkflow(user: User, profile: Profile) {
 
 			if (alreadyProcessed) {
 				console.log(
-					`Hoppar över jobb ${job.id} (${job.jobTitle}) - Redan hanterat.`,
+					`Hoppar över jobb ${job.id} (${job.headline}) - Redan hanterat.`,
 				);
 				continue;
 			}

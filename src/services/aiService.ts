@@ -1,6 +1,6 @@
 import { ApplyType } from "../types/enums.ts";
 
-export async function analyzeJobWithAI(cvText: string, jobDescription: string) {
+export async function analyzeJobWithAI(cvText: string, descriptionText: string) {
 	// Mock-implementation
 	return {
 		match: true,
