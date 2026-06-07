@@ -73,5 +73,9 @@ https://jobstream.api.jobtechdev.se/ !!
 * Generera en visuell rapport/dashboard över vad systemet har gjort (vilka jobb sökta, vilken `ApplyType` valdes).
 * Möjlig pivot/integration: Sätt in denna logik som en "Sourcing-motor" i projektet *Star Match*.
 * Om man vill ha en TeamTailor version skulle man kanske kunna göra som så att man läser av företag.carrers där formuläret finns, sickar vidar det till en lättare llm. Som i sin ture genererar playwright-kod som filler i formuläret.
+* Google cloud run flöde:
+- Användaren agerar i UI: Användaren loggar in i frontend, väljer "Stockholm" och "Fullstack-utvecklare", och klickar på Starta Autopilot.
+- Backend (API): Tar emot anropet och anropar Google Cloud Run API.
+- Startar en Jobb-instans: Backend säger till Google Cloud: "Starta en instans av 'job-fetcher'-containern, men för den här specifika körningen, sätt miljövariablerna USER_ID=123, LOCATION_ID=xyz och OCCUPATION_ID=abc".
 
 ---

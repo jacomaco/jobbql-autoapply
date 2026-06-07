@@ -6,3 +6,4 @@ export const applicationQueue = {
 		console.log(`[KÖ] La till jobb i kön: ${data.job.jobTitle}`);
 	},
 };
+// I might be able to replace this with some langgraph implementatiton.
