@@ -1,8 +1,10 @@
 import JSONStream from "JSONStream";
 import { Readable } from "node:stream";
 import type { JobPost } from "../models/JobPost";
+import getStreamUrl from "./getStreamUrl";
 
-const STREAM_URL = "https://jobstream.api.jobtechdev.se/stream";
+// const STREAM_URL = "https://jobstream.api.jobtechdev.se/stream";
+const STREAM_URL = getStreamUrl();
 
 export async function* fetchJobAdsFromArbetsformedlingen(): AsyncGenerator<
 	JobPost,
