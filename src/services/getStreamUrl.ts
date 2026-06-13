@@ -1,4 +1,10 @@
-function getStreamUrl() {
+export enum Locations {
+	Stockholm = "AvNB_uwa_6n6",
+	// VastraGotaland = "v9Ke_99L_UvW",
+	// Skane = "caYg_478_Yw6",
+}
+
+export default function getStreamUrl(): string {
 	const baseUrl = "https://jobstream.api.jobtechdev.se/v2/stream";
 
 	// Hämtar tid för exakt 24h sedan, API:et kräver minuter och sekunder (:00:00)
@@ -7,13 +13,7 @@ function getStreamUrl() {
 		.split(":")[0]
 		?.trim();
 
-	enum Locations {
-		Stockholm = "AvNB_uwa_6n6",
-		// VastraGotaland = "v9Ke_99L_UvW", Jag vet inte om dessa fungerar, det verkar inte som det.
-		// Skane = "caYg_478_Yw6",
-	}
-
-	// Din sammankopplade datastruktur
+	// Din sammankopplade datastruktur för filtrering
 	const filterMapping = {
 		"location-concept-id": [Locations.Stockholm],
 	};
@@ -24,6 +24,7 @@ function getStreamUrl() {
 		params.append("updated-after", UpdatedAfter);
 	}
 
+	// Lägg till alla filter från filterMapping
 	Object.entries(filterMapping).forEach(([paramKey, values]) => {
 		values.forEach((id) => {
 			params.append(paramKey, id);
@@ -31,9 +32,7 @@ function getStreamUrl() {
 	});
 
 	const finalUrl = `${baseUrl}?${params.toString()}`;
-	console.log(finalUrl);
-
-	console.log("---");
+	console.log("Hämtar från URL:", finalUrl);
+	
+	return finalUrl;
 }
-getStreamUrl();
-export default getStreamUrl;
